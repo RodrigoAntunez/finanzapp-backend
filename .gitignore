@@ -16,3 +16,4 @@ node_modules/
 
 # Archivos de logs
 *.log
+.vercel
