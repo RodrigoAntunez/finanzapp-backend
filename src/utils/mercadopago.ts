@@ -1,23 +1,19 @@
-import { MercadoPagoConfig, Preapproval } from "@mercadopago/mercadopago";
+// src/utils/mercadopago.ts
+import { MercadoPagoConfig, PreApproval } from "mercadopago";
 
-const mp = new MercadoPagoConfig({
-  access_token: process.env.MERCADO_PAGO_API_KEY,
+// Configurar el cliente de Mercado Pago
+const client = new MercadoPagoConfig({
+  accessToken: process.env.MERCADO_PAGO_ACCESS_TOKEN || "",
+  options: { timeout: 5000 },
 });
 
-export const createSubscription = async (user: any) => {
-  const preapproval: Preapproval = {
-    payer_email: "user.email", // Necesitas obtener el email del usuario
-    reason: "Suscripción a FinanzApp",
-    external_reference: user._id,
-    auto_recurring: {
-      frequency: 1,
-      frequency_type: "months",
-      transaction_amount: 10,
-      currency_id: "ARS",
-    },
-    back_url: "http://localhost:3000/dashboard",
-  };
-
-  const response = await mp.preapproval.create(preapproval);
-  return response.init_point;
+export const createPreApproval = async (preApprovalData: any) => {
+  try {
+    const preApproval = new PreApproval(client);
+    const result = await preApproval.create({ body: preApprovalData });
+    return result;
+  } catch (error) {
+    console.error("Error al crear el preapproval:", error);
+    throw error;
+  }
 };

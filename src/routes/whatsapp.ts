@@ -1,10 +1,10 @@
 // backend/src/routes/whatsapp.ts
 import express from "express";
-import { auth } from "../middleware/auth";
+import { authMiddleware } from "../middleware/auth";
 import { processMessage } from "../controllers/messageController";
 
 const router = express.Router();
 
-router.post("/message", auth, processMessage);
+router.post("/message", authMiddleware, processMessage);
 
 export default router;

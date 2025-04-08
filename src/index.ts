@@ -43,7 +43,7 @@ import dotenv from "dotenv";
 import { connectDB } from "./db"; // Cambiado de `import connectDB from "./db"`
 import authRoutes from "./routes/authRoutes";
 import expenseRoutes from "./routes/expenseRoutes";
-import messageRoutes from "./routes/messageRoutes";
+// import messageRoutes from "./routes/messageRoutes";
 import reminderRoutes from "./routes/reminderRoutes";
 import shoppingRoutes from "./routes/shoppingRoutes";
 import subscriptionRoutes from "./routes/subscriptionRoutes";
@@ -66,9 +66,8 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true })); // Para procesar los datos del webhook
 
 // Rutas
-app.use("/api/auth", authRoutes);
 app.use("/api/expenses", expenseRoutes);
-app.use("/api/messages", messageRoutes);
+// app.use("/api/messages", messageRoutes);
 app.use("/api/reminders", reminderRoutes);
 app.use("/api/shopping-lists", shoppingRoutes);
 app.use("/api/subscriptions", subscriptionRoutes);

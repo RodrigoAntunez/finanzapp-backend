@@ -279,6 +279,7 @@
 // backend/src/controllers/messageController.ts
 // backend/src/controllers/messageController.ts
 // backend/src/controllers/messageController.ts
+// src/controllers/messageController.ts
 import { Request, Response, NextFunction } from "express";
 import asyncHandler from "express-async-handler";
 import axios from "axios";
@@ -378,8 +379,8 @@ export const sendWhatsAppMessage = async (to: string, message: string) => {
   }
 };
 
-// Handle incoming WhatsApp messages
-export const handleIncomingMessage = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+// Handle incoming WhatsApp messages (renombrado a processMessage)
+export const processMessage = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
   // Verificar el webhook (GET request)
   if (req.method === "GET") {
     const mode = req.query["hub.mode"];
@@ -500,52 +501,52 @@ export const handleIncomingMessage = asyncHandler(async (req: Request, res: Resp
 
     switch (parsedMessage.type) {
       case "expense":
-  const { amount, category, description } = parsedMessage.data;
+        const { amount, category, description } = parsedMessage.data;
 
-  // Guardar el gasto como pendiente
-  const pendingExpense: IPendingExpense = new PendingExpense({
-    userId: user._id,
-    amount,
-    category,
-    description,
-  });
+        // Guardar el gasto como pendiente
+        const pendingExpense: IPendingExpense = new PendingExpense({
+          userId: user._id,
+          amount,
+          category,
+          description,
+        });
 
-  console.log("Intentando guardar el gasto pendiente:", {
-    userId: user._id,
-    amount,
-    category,
-    description,
-  });
+        console.log("Intentando guardar el gasto pendiente:", {
+          userId: user._id,
+          amount,
+          category,
+          description,
+        });
 
-  try {
-    await pendingExpense.save();
-    console.log("Gasto pendiente guardado exitosamente:", {
-      id: pendingExpense._id,
-      amount: pendingExpense.amount,
-      category: pendingExpense.category,
-    });
-  } catch (error) {
-    console.error("Error al guardar el gasto pendiente:", error);
-    throw error; // Lanza el error para que se maneje en el catch externo
-  }
+        try {
+          await pendingExpense.save();
+          console.log("Gasto pendiente guardado exitosamente:", {
+            id: pendingExpense._id,
+            amount: pendingExpense.amount,
+            category: pendingExpense.category,
+          });
+        } catch (error) {
+          console.error("Error al guardar el gasto pendiente:", error);
+          throw error; // Lanza el error para que se maneje en el catch externo
+        }
 
-  // Enviar mensaje interactivo con botones
-  const confirmationMessage =
-    `📝 *Gasto pendiente de confirmación:*\n\n` +
-    `💰 *Monto:* $${amount}\n` +
-    `📁 *Categoría:* ${category}\n\n` +
-    `¿Deseas confirmar este gasto?`;
+        // Enviar mensaje interactivo con botones
+        const confirmationMessage =
+          `📝 *Gasto pendiente de confirmación:*\n\n` +
+          `💰 *Monto:* $${amount}\n` +
+          `📁 *Categoría:* ${category}\n\n` +
+          `¿Deseas confirmar este gasto?`;
 
-  console.log("Simulación de mensaje interactivo enviado:", {
-    to: from,
-    message: confirmationMessage,
-    buttons: ["Confirmar", "Rechazar"],
-  });
+        console.log("Simulación de mensaje interactivo enviado:", {
+          to: from,
+          message: confirmationMessage,
+          buttons: ["Confirmar", "Rechazar"],
+        });
 
-  // Comentamos el envío real hasta que Meta reactive tu cuenta
-  // await sendInteractiveMessage(from, confirmationMessage, pendingExpense._id.toString());
+        // Comentamos el envío real hasta que Meta reactive tu cuenta
+        // await sendInteractiveMessage(from, confirmationMessage, pendingExpense._id.toString());
 
-  break;
+        break;
 
       case "reminder":
         const { task, time, date } = parsedMessage.data;

@@ -1,9 +1,9 @@
-// backend/src/routes/messageRoutes.ts
-import { Router } from "express";
-import { handleIncomingMessage } from "../controllers/messageController";
+// // backend/src/routes/messageRoutes.ts
+// import { Router } from "express";
+// import { processMessage } from "../controllers/messageController";
 
-const router = Router();
+// const router = Router();
 
-router.route("/incoming").get(handleIncomingMessage).post(handleIncomingMessage);
+// router.post("/", processMessage);
 
-export default router;
+// export default router;

@@ -1,7 +1,7 @@
 // backend/src/utils/responseGenerator.ts
 
 // URL de la página web de FinanzApp
-const WEBSITE_URL = "https://tu-usuario.github.io/finanzapp-web/"; // Reemplaza con tu URL real
+const WEBSITE_URL = "https://finanzapp-frontend.vercel.app";
 
 // Función para formatear fechas
 const formatDate = (date: Date): string => {
