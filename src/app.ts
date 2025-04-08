@@ -3,14 +3,14 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import { connectDB } from "./db";
-import authRoutes from "./routes/authRoutes";
-import expenseRoutes from "./routes/expenseRoutes";
-import reminderRoutes from "./routes/reminderRoutes";
-import shoppingRoutes from "./routes/shoppingRoutes";
-import subscriptionRoutes from "./routes/subscriptionRoutes";
-import userRoutes from "./routes/userRoutes";
-import validateTokenRoutes from "./routes/validateTokenRoutes";
-import webhookRoutes from "./routes/webhookRoutes";
+import authRoutes from "./routes/authRoutes.js";
+import expenseRoutes from "./routes/expenseRoutes.js";
+import reminderRoutes from "./routes/reminderRoutes.js";
+import shoppingRoutes from "./routes/shoppingRoutes.js";
+import subscriptionRoutes from "./routes/subscriptionRoutes.js";
+import userRoutes from "./routes/userRoutes.js";
+import validateTokenRoutes from "./routes/validateTokenRoutes.js";
+import webhookRoutes from "./routes/webhookRoutes.js";
 
 dotenv.config();
 console.log("VERIFY_TOKEN cargado:", process.env.VERIFY_TOKEN);
@@ -24,6 +24,10 @@ connectDB();
 app.use(cors({ origin: "https://finanzapp-frontend.vercel.app" }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+app.get("/api/auth/direct-test", (req, res) => {
+    res.status(200).json({ message: "Ruta de prueba directa en /api/auth/direct-test" });
+});
 
 app.get("/", (req, res) => {
     res.status(200).json({ message: "Bienvenido a FinanzApp Backend" });
