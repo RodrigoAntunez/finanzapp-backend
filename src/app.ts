@@ -25,6 +25,10 @@ app.use(cors({ origin: "https://finanzapp-frontend.vercel.app" }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+app.get("/", (req, res) => {
+    res.status(200).json({ message: "Bienvenido a FinanzApp Backend" });
+});
+
 // Rutas
 app.use("/api/auth", authRoutes);
 app.use("/api/expenses", expenseRoutes);
