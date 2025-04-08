@@ -31,12 +31,20 @@ app.get("/", (req, res) => {
 
 // Rutas
 app.use("/api/auth", authRoutes);
+console.log("Rutas de autenticación montadas en /api/auth");
 app.use("/api/expenses", expenseRoutes);
+console.log("Rutas de gastos montadas en /api/expenses");
 app.use("/api/reminders", reminderRoutes);
+console.log("Rutas de recordatorios montadas en /api/reminders");
 app.use("/api/shopping-lists", shoppingRoutes);
+console.log("Rutas de listas de compras montadas en /api/shopping-lists");
 app.use("/api/subscriptions", subscriptionRoutes);
+console.log("Rutas de suscripciones montadas en /api/subscriptions");
 app.use("/api/users", userRoutes);
+console.log("Rutas de usuarios montadas en /api/users");
 app.use("/api/validate-token", validateTokenRoutes);
+console.log("Rutas de usuarios montadas en /api/users");
 app.use("/api/webhook", webhookRoutes);
+console.log("Rutas de webhook montadas en /api/webhook");
 
 export default app;
