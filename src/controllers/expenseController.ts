@@ -50,20 +50,65 @@ export const getExpenses = asyncHandler(async (req: Request, res: Response, next
 });
 
 // Crear un nuevo gasto
+// export const createExpense = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+//   const { amount, category, description, shared, members, division, reminderDate } = req.body;
+//   const userId = req.user?.id;
+
+//   if (!userId) {
+//     res.status(401);
+//     throw new Error("Usuario no autenticado");
+//   }
+
+//   if (!amount || !category) {
+//     res.status(400);
+//     throw new Error("Por favor, proporciona el monto y la categoría");
+//   }
+
+//   const expense: IExpense = new Expense({
+//     userId: new mongoose.Types.ObjectId(userId),
+//     user: new mongoose.Types.ObjectId(userId),
+//     amount,
+//     category,
+//     description,
+//     shared: shared || false,
+//     members: members ? members.map((id: string) => new mongoose.Types.ObjectId(id)) : [],
+//     division,
+//     reminderDate: reminderDate ? new Date(reminderDate) : undefined,
+//     date: new Date(),
+//   });
+
+//   await expense.save();
+
+//   await User.updateOne(
+//     { _id: userId },
+//     { $push: { expenses: expense._id } }
+//   );
+
+//   res.status(201).json({
+//     message: "Gasto creado exitosamente",
+//     expense,
+//   });
+// });
 export const createExpense = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+  console.log("Solicitud recibida en POST /api/expenses:", req.body);
+  console.log("Usuario autenticado:", req.user);
+
   const { amount, category, description, shared, members, division, reminderDate } = req.body;
   const userId = req.user?.id;
 
   if (!userId) {
+    console.log("Usuario no autenticado en POST /api/expenses");
     res.status(401);
     throw new Error("Usuario no autenticado");
   }
 
   if (!amount || !category) {
+    console.log("Faltan campos requeridos en POST /api/expenses: amount y category son obligatorios");
     res.status(400);
     throw new Error("Por favor, proporciona el monto y la categoría");
   }
 
+  console.log("Creando nuevo gasto con los datos:", { amount, category, description, userId });
   const expense: IExpense = new Expense({
     userId: new mongoose.Types.ObjectId(userId),
     user: new mongoose.Types.ObjectId(userId),
@@ -77,12 +122,16 @@ export const createExpense = asyncHandler(async (req: Request, res: Response, ne
     date: new Date(),
   });
 
+  console.log("Guardando gasto en la base de datos...");
   await expense.save();
+  console.log("Gasto guardado exitosamente:", expense);
 
+  console.log("Actualizando usuario con el nuevo gasto...");
   await User.updateOne(
     { _id: userId },
     { $push: { expenses: expense._id } }
   );
+  console.log("Usuario actualizado exitosamente");
 
   res.status(201).json({
     message: "Gasto creado exitosamente",
