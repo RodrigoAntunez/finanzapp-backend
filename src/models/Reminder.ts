@@ -1,16 +1,17 @@
 // backend/src/models/Reminder.ts
-import mongoose from "mongoose";
+import { Schema, model, Document, Types } from "mongoose";
 
-export interface IReminder extends mongoose.Document {
-  user: mongoose.Types.ObjectId;
-  task: string; // Renombramos "description" a "task"
+export interface IReminder extends Document {
+  _id: Types.ObjectId; // Añadimos explícitamente el tipo de _id
+  user: Types.ObjectId;
+  task: string;
   date: Date;
 }
 
-const reminderSchema = new mongoose.Schema<IReminder>({
-  user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
-  task: { type: String, required: true }, // Cambiamos "description" a "task"
+const reminderSchema = new Schema<IReminder>({
+  user: { type: Schema.Types.ObjectId, ref: "User", required: true },
+  task: { type: String, required: true },
   date: { type: Date, required: true },
 });
 
-export const Reminder = mongoose.model<IReminder>("Reminder", reminderSchema);
+export const Reminder = model<IReminder>("Reminder", reminderSchema);
