@@ -40,12 +40,15 @@ export const verifyWebhook = async (
     const body = text.body;
     console.log("Mensaje de WhatsApp recibido:", body);
 
+    // Añadir el código de país al número de WhatsApp
+    const formattedFrom = from.startsWith("+") ? from : `+54${from}`; // Ajusta el código de país según el país (por ejemplo, +54 para Argentina)
+
     // Buscar el usuario por número de WhatsApp
     const user = await User.findOne({ whatsappNumber: from });
     if (!user) {
       console.log("Usuario no encontrado para el número de WhatsApp:", from);
       await sendWhatsAppMessage(
-        from,
+        formattedFrom,
         "No estás registrado. Por favor, regístrate en FinanzApp para usar esta funcionalidad."
       );
       res.status(404).json({ message: "Usuario no encontrado" });
@@ -58,7 +61,7 @@ export const verifyWebhook = async (
     if (user.subscriptionStatus !== "active" && user.trialEndDate && user.trialEndDate < new Date()) {
       console.log("Usuario sin suscripción activa:", userId);
       await sendWhatsAppMessage(
-        from,
+        formattedFrom,
         "Tu suscripción o período de prueba ha expirado. Por favor, actualiza tu plan para crear recordatorios."
       );
       res.status(403).json({ message: "Suscripción inactiva" });
@@ -70,7 +73,7 @@ export const verifyWebhook = async (
     if (user.subscriptionStatus !== "active" && user.messageCount >= messageLimit) {
       console.log("Usuario ha alcanzado el límite de mensajes:", userId);
       await sendWhatsAppMessage(
-        from,
+        formattedFrom,
         `Has alcanzado el límite de ${messageLimit} mensajes. Por favor, actualiza tu plan para continuar usando FinanzApp.`
       );
       res.status(403).json({ message: "Límite de mensajes alcanzado" });
@@ -87,7 +90,7 @@ export const verifyWebhook = async (
     if (!match) {
       console.log("Formato del mensaje no válido:", body);
       await sendWhatsAppMessage(
-        from,
+        formattedFrom,
         "Formato del mensaje no válido. Usa: 'recordame <tarea> mañana a las <hora>:<minutos>' (ejemplo: 'recordame comprar pan mañana a las 9:00')."
       );
       res.status(400).json({ message: "Formato del mensaje no válido" });
@@ -124,13 +127,13 @@ export const verifyWebhook = async (
     }
 
     // Actualizar el array de reminders del usuario
-    user.reminders.push(reminder._id); // Ahora TypeScript debería reconocer reminder._id como ObjectId
+    user.reminders.push(reminder._id);
     await user.save();
     console.log("Array de reminders del usuario actualizado:", user.reminders);
 
     // Enviar una respuesta al usuario
     await sendWhatsAppMessage(
-      from,
+      formattedFrom,
       `Recordatorio creado: "${task}" para mañana a las ${hours}:${minutes.toString().padStart(2, "0")}.`
     );
 
@@ -146,7 +149,12 @@ const sendWhatsAppMessage = async (to: string, message: string): Promise<void> =
     const whatsappApiUrl = `https://graph.facebook.com/v20.0/${process.env.WHATSAPP_PHONE_NUMBER_ID}/messages`;
     const whatsappToken = process.env.WHATSAPP_TOKEN;
 
-    await axios.post(
+    // Verificar que las credenciales estén definidas
+    if (!whatsappToken || !process.env.WHATSAPP_PHONE_NUMBER_ID) {
+      throw new Error("WHATSAPP_TOKEN o WHATSAPP_PHONE_NUMBER_ID no están definidos");
+    }
+
+    const response = await axios.post(
       whatsappApiUrl,
       {
         messaging_product: "whatsapp",
@@ -163,9 +171,12 @@ const sendWhatsAppMessage = async (to: string, message: string): Promise<void> =
         },
       }
     );
-    console.log("Respuesta enviada al usuario en WhatsApp:", to);
+    console.log("Respuesta enviada al usuario en WhatsApp:", to, response.data);
   } catch (error: any) {
     console.error("Error al enviar mensaje de WhatsApp:", error.message);
+    if (error.response) {
+      console.error("Detalles del error de WhatsApp:", JSON.stringify(error.response.data, null, 2));
+    }
     throw error;
   }
 };
