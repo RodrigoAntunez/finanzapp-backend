@@ -6,7 +6,7 @@ export const verifyWebhook = async (
   req: Request,
   res: Response,
   next: NextFunction
-) => {
+): Promise<void> => {
   try {
     console.log(
       "Solicitud recibida en POST /api/webhook/verify:",
@@ -18,18 +18,21 @@ export const verifyWebhook = async (
     // Verificar que sea un evento de WhatsApp
     if (object !== "whatsapp_business_account") {
       console.log("Solicitud no es un evento de WhatsApp:", object);
-      return res.status(400).json({ message: "Evento no válido" });
+      res.status(400).json({ message: "Evento no válido" });
+      return;
     }
 
     if (!entry || !entry[0]?.changes || !entry[0].changes[0]?.value?.messages) {
       console.log("Estructura de la solicitud no válida:", entry);
-      return res.status(400).json({ message: "Estructura de la solicitud no válida" });
+      res.status(400).json({ message: "Estructura de la solicitud no válida" });
+      return;
     }
 
     const message = entry[0].changes[0].value.messages[0];
     if (message.type !== "text") {
       console.log("Mensaje no es de tipo texto:", message.type);
-      return res.status(400).json({ message: "Solo se admiten mensajes de texto" });
+      res.status(400).json({ message: "Solo se admiten mensajes de texto" });
+      return;
     }
 
     const { from, text } = message;
@@ -46,7 +49,8 @@ export const verifyWebhook = async (
     const match = body.match(/recordame (.+) mañana a las (\d{1,2}):(\d{2})/i);
     if (!match) {
       console.log("Formato del mensaje no válido:", body);
-      return res.status(400).json({ message: "Formato del mensaje no válido" });
+      res.status(400).json({ message: "Formato del mensaje no válido" });
+      return;
     }
 
     const task = match[1]; // "comprar leche"
