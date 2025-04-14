@@ -302,7 +302,7 @@ interface AxiosErrorLike {
 
 // Función para enviar un mensaje interactivo con botones
 export const sendInteractiveMessage = async (to: string, body: string, expenseId: string) => {
-  const url = `https://graph.facebook.com/v20.0/${process.env.WHATSAPP_PHONE_NUMBER_ID}/messages`;
+  const url = `https://graph.facebook.com/v22.0/${process.env.WHATSAPP_PHONE_NUMBER_ID}/messages`;
   const data = {
     messaging_product: "whatsapp",
     to: to,
@@ -353,7 +353,7 @@ export const sendInteractiveMessage = async (to: string, body: string, expenseId
 
 // Exporta la función sendWhatsAppMessage
 export const sendWhatsAppMessage = async (to: string, message: string) => {
-  const url = `https://graph.facebook.com/v20.0/${process.env.WHATSAPP_PHONE_NUMBER_ID}/messages`;
+  const url = `https://graph.facebook.com/v22.0/${process.env.WHATSAPP_PHONE_NUMBER_ID}/messages`;
   const data = {
     messaging_product: "whatsapp",
     to: to,

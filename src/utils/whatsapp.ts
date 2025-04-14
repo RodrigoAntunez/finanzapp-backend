@@ -45,7 +45,7 @@ import axios from "axios";
 export const sendMessage = async (to: string, message: string) => {
   try {
     await axios.post(
-      `https://graph.facebook.com/v20.0/${process.env.WHATSAPP_PHONE_NUMBER_ID}/messages`,
+      `https://graph.facebook.com/v22.0/${process.env.WHATSAPP_PHONE_NUMBER_ID}/messages`,
       {
         messaging_product: "whatsapp",
         to,
