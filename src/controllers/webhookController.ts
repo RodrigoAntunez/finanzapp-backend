@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import { Reminder } from "../models/Reminder";
-import { Expense } from "../models/Expense"; // Importa el modelo de Expense
+import { Expense } from "../models/Expense";
 import { User } from "../models/User";
 import axios from "axios";
 
@@ -89,7 +89,7 @@ export const verifyWebhook = async (
     const message = value.messages[0];
     if (message.type !== "text") {
       console.log("Mensaje no es de tipo texto:", message.type);
-      await sendWhatsAppMessage(message.from, "Solo se admiten mensajes de texto.");
+      await sendWhatsAppMessage(`+${message.from}`, "Solo se admiten mensajes de texto.");
       res.status(400).json({ message: "Solo se admiten mensajes de texto" });
       return;
     }
@@ -98,15 +98,16 @@ export const verifyWebhook = async (
     const body = text.body;
     console.log("Mensaje de WhatsApp recibido:", body);
 
-    // Añadir el código de país al número de WhatsApp
-    const formattedFrom = from.startsWith("+") ? from : `+${from}`;
+    // Asegurar que el número tenga el formato correcto
+    const userPhoneNumber = `+${from}`;
+    console.log("Número de usuario formateado:", userPhoneNumber);
 
     // Buscar el usuario por número de WhatsApp
-    let user = await User.findOne({ whatsappNumber: from });
+    let user = await User.findOne({ whatsappNumber: userPhoneNumber });
     if (!user) {
-      console.log("Usuario no encontrado para el número de WhatsApp:", from);
+      console.log("Usuario no encontrado para el número de WhatsApp:", userPhoneNumber);
       await sendWhatsAppMessage(
-        formattedFrom,
+        userPhoneNumber,
         "No estás registrado. Por favor, regístrate en FinanzApp para usar esta funcionalidad."
       );
       res.status(404).json({ message: "Usuario no encontrado" });
@@ -120,7 +121,7 @@ export const verifyWebhook = async (
     if (user.subscriptionStatus !== "active" && !isTrialActive) {
       console.log("Usuario sin suscripción activa:", userId);
       await sendWhatsAppMessage(
-        formattedFrom,
+        userPhoneNumber,
         "Tu suscripción o período de prueba ha expirado. Por favor, actualiza tu plan para continuar usando FinanzApp."
       );
       res.status(403).json({ message: "Suscripción inactiva" });
@@ -132,7 +133,7 @@ export const verifyWebhook = async (
     if (user.subscriptionStatus !== "active" && user.messageCount >= messageLimit) {
       console.log("Usuario ha alcanzado el límite de mensajes:", userId);
       await sendWhatsAppMessage(
-        formattedFrom,
+        userPhoneNumber,
         `Has alcanzado el límite de ${messageLimit} mensajes. Por favor, actualiza tu plan para continuar usando FinanzApp.`
       );
       res.status(403).json({ message: "Límite de mensajes alcanzado" });
@@ -182,7 +183,7 @@ export const verifyWebhook = async (
       console.log("Array de reminders del usuario actualizado:", user.reminders);
 
       await sendWhatsAppMessage(
-        formattedFrom,
+        userPhoneNumber,
         `Recordatorio creado: "${task}" para mañana a las ${hours}:${minutes.toString().padStart(2, "0")}.`
       );
 
@@ -211,14 +212,13 @@ export const verifyWebhook = async (
       const expense = await newExpense.save();
       console.log("Gasto guardado exitosamente:", expense);
 
-      // Opcional: Actualizar un array de gastos en el usuario
       user.expenses = user.expenses || [];
       user.expenses.push(expense._id);
       await user.save();
       console.log("Array de expenses del usuario actualizado:", user.expenses);
 
       await sendWhatsAppMessage(
-        formattedFrom,
+        userPhoneNumber,
         `Gasto registrado: $${amount} en ${category}.`
       );
 
@@ -229,7 +229,7 @@ export const verifyWebhook = async (
     // Si el mensaje no coincide con ningún formato
     console.log("Formato del mensaje no válido:", body);
     await sendWhatsAppMessage(
-      formattedFrom,
+      userPhoneNumber,
       "Formato del mensaje no válido. Usa:\n- 'recordame <tarea> mañana a las <hora>:<minutos>' (ejemplo: 'recordame comprar pan mañana a las 9:00')\n- 'gaste <monto> en <categoría>' (ejemplo: 'gaste 100 en panaderia')"
     );
     res.status(400).json({ message: "Formato del mensaje no válido" });
