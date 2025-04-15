@@ -33,7 +33,7 @@ export const getExpenses = asyncHandler(async (req: Request, res: Response, next
 
   // Ajustar el número de WhatsApp al formato internacional
   if (whatsappNumber && !whatsappNumber.startsWith("+")) {
-    whatsappNumber = `+54${whatsappNumber}`; // Ajusta según el código de país
+    whatsappNumber = `+${whatsappNumber}`; // Ajusta según el código de país
   }
 
   // Enviar el mensaje a WhatsApp

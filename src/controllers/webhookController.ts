@@ -99,7 +99,7 @@ export const verifyWebhook = async (
     console.log("Mensaje de WhatsApp recibido:", body);
 
     // Añadir el código de país al número de WhatsApp
-    const formattedFrom = from.startsWith("+") ? from : `+54${from}`;
+    const formattedFrom = from.startsWith("+") ? from : `+${from}`;
 
     // Buscar el usuario por número de WhatsApp
     let user = await User.findOne({ whatsappNumber: from });
