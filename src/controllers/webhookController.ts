@@ -35,7 +35,7 @@ const sendWhatsAppMessage = async (to: string, message: string): Promise<void> =
 
 export const verifyWebhook = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    console.log("Solicitud recibida en POST /api/webhook/verify:", JSON.stringify(req.body, null, 2));
+    console.log("Solicitud recibida en POST /api/webhook/verify - Inicio:", JSON.stringify(req.body, null, 2));
 
     const { object, entry } = req.body;
 
@@ -45,7 +45,6 @@ export const verifyWebhook = async (req: Request, res: Response, next: NextFunct
       return;
     }
 
-    // Validación más flexible de entry
     console.log("Validando entrada:", JSON.stringify(entry, null, 2));
     if (!entry || entry.length === 0) {
       console.log("Entrada vacía o no definida:", entry);
@@ -92,7 +91,7 @@ export const verifyWebhook = async (req: Request, res: Response, next: NextFunct
     if (message.type !== "text") {
       console.log("Mensaje no es de tipo texto:", message.type);
       const userPhoneNumber = `+${message.from}`;
-      console.log("Enviando mensaje a:", userPhoneNumber);
+      console.log("Enviando mensaje a (no texto):", userPhoneNumber);
       await sendWhatsAppMessage(userPhoneNumber, "Solo se admiten mensajes de texto.");
       res.status(200).json({ message: "Solo se admiten mensajes de texto" });
       return;
@@ -111,7 +110,7 @@ export const verifyWebhook = async (req: Request, res: Response, next: NextFunct
       console.log("Usuario no encontrado para el número de WhatsApp:", userPhoneNumber);
       const allUsers = await User.find({}, { whatsappNumber: 1 });
       console.log("Todos los usuarios en la colección test.users:", allUsers);
-      console.log("Enviando mensaje a:", userPhoneNumber);
+      console.log("Enviando mensaje a (no encontrado):", userPhoneNumber);
       await sendWhatsAppMessage(userPhoneNumber, "No estás registrado. Por favor, regístrate en FinanzApp para usar esta funcionalidad.");
       res.status(200).json({ message: "Usuario no encontrado" });
       return;
@@ -122,7 +121,7 @@ export const verifyWebhook = async (req: Request, res: Response, next: NextFunct
     const isTrialActive = user.trialEndDate && user.trialEndDate > new Date();
     if (user.subscriptionStatus !== "active" && !isTrialActive) {
       console.log("Usuario sin suscripción activa:", userId);
-      console.log("Enviando mensaje a:", userPhoneNumber);
+      console.log("Enviando mensaje a (suscripción):", userPhoneNumber);
       await sendWhatsAppMessage(userPhoneNumber, "Tu suscripción o período de prueba ha expirado. Por favor, actualiza tu plan para continuar usando FinanzApp.");
       res.status(200).json({ message: "Suscripción inactiva" });
       return;
@@ -131,7 +130,7 @@ export const verifyWebhook = async (req: Request, res: Response, next: NextFunct
     const messageLimit = 10;
     if (user.subscriptionStatus !== "active" && user.messageCount >= messageLimit) {
       console.log("Usuario ha alcanzado el límite de mensajes:", userId);
-      console.log("Enviando mensaje a:", userPhoneNumber);
+      console.log("Enviando mensaje a (límite):", userPhoneNumber);
       await sendWhatsAppMessage(userPhoneNumber, `Has alcanzado el límite de ${messageLimit} mensajes. Por favor, actualiza tu plan para continuar usando FinanzApp.`);
       res.status(200).json({ message: "Límite de mensajes alcanzado" });
       return;
@@ -151,7 +150,7 @@ export const verifyWebhook = async (req: Request, res: Response, next: NextFunct
 
       if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59) {
         console.log("Hora o minutos inválidos:", hours, minutes);
-        console.log("Enviando mensaje a:", userPhoneNumber);
+        console.log("Enviando mensaje a (hora inválida):", userPhoneNumber);
         await sendWhatsAppMessage(userPhoneNumber, "Hora o minutos inválidos. Usa un formato válido (0-23:00-59).");
         res.status(200).json({ message: "Hora inválida" });
         return;
@@ -174,7 +173,7 @@ export const verifyWebhook = async (req: Request, res: Response, next: NextFunct
       await user.save();
       console.log("Array de reminders del usuario actualizado:", user.reminders);
 
-      console.log("Enviando mensaje a:", userPhoneNumber);
+      console.log("Enviando mensaje a (recordatorio):", userPhoneNumber);
       await sendWhatsAppMessage(userPhoneNumber, `Recordatorio creado: "${task}" para mañana a las ${hours}:${minutes.toString().padStart(2, "0")}.`);
       res.status(200).json({ message: "Recordatorio procesado exitosamente" });
       return;
@@ -188,7 +187,7 @@ export const verifyWebhook = async (req: Request, res: Response, next: NextFunct
 
       if (isNaN(amount) || amount <= 0) {
         console.log("Monto inválido:", amount);
-        console.log("Enviando mensaje a:", userPhoneNumber);
+        console.log("Enviando mensaje a (monto inválido):", userPhoneNumber);
         await sendWhatsAppMessage(userPhoneNumber, "Monto inválido. Usa un número positivo.");
         res.status(200).json({ message: "Monto inválido" });
         return;
@@ -204,14 +203,14 @@ export const verifyWebhook = async (req: Request, res: Response, next: NextFunct
       await user.save();
       console.log("Array de expenses del usuario actualizado:", user.expenses);
 
-      console.log("Enviando mensaje a:", userPhoneNumber);
+      console.log("Enviando mensaje a (gasto):", userPhoneNumber);
       await sendWhatsAppMessage(userPhoneNumber, `Gasto registrado: $${amount} en ${category}.`);
       res.status(200).json({ message: "Gasto procesado exitosamente" });
       return;
     }
 
     console.log("Formato del mensaje no válido:", body);
-    console.log("Enviando mensaje a:", userPhoneNumber);
+    console.log("Enviando mensaje a (formato inválido):", userPhoneNumber);
     await sendWhatsAppMessage(
       userPhoneNumber,
       "Formato del mensaje no válido. Usa:\n- 'recordame <tarea> mañana a las <hora>:<minutos>' (ejemplo: 'recordame comprar pan mañana a las 9:00')\n- 'gaste <monto> en <categoría>' (ejemplo: 'gaste 100 en panaderia')"
