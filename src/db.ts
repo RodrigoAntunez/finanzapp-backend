@@ -21,16 +21,17 @@ export const connectDB = async () => {
     }
 
     await mongoose.connect(process.env.MONGODB_URI, {
-      connectTimeoutMS: 60000, // 60 segundos
-      socketTimeoutMS: 60000, // 60 segundos
-      serverSelectionTimeoutMS: 60000, // 60 segundos
-      maxPoolSize: 10, // Número máximo de conexiones en el pool
-      minPoolSize: 1, // Número mínimo de conexiones en el pool
-      retryWrites: true, // Reintentar escrituras en caso de fallo
-      w: "majority", // Estrategia de escritura
+      dbName: "finanzapp", // Especifica la base de datos
+      connectTimeoutMS: 60000,
+      socketTimeoutMS: 60000,
+      serverSelectionTimeoutMS: 60000,
+      maxPoolSize: 10,
+      minPoolSize: 1,
+      retryWrites: true,
+      w: "majority",
     });
 
-    console.log("MongoDB conectado");
+    console.log("MongoDB conectado a la base de datos: finanzapp");
   } catch (err: any) {
     console.error("Error al conectar a MongoDB:", err.message);
     process.exit(1);
