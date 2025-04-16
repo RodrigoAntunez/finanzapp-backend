@@ -71,18 +71,18 @@ export const verifyWebhook = async (
     // Manejar eventos de estado (statuses)
     if (value.statuses) {
       const status = value.statuses[0];
-      console.log("Evento de estado recibido:", status);
+      console.log("Evento de estado recibido:", JSON.stringify(status, null, 2));
       if (status.status === "failed") {
         console.error("Fallo en el envío del mensaje:", status.errors);
       }
-      res.sendStatus(200);
+      res.sendStatus(200); // Aceptar el evento de estado
       return;
     }
 
     // Manejar mensajes entrantes (messages)
     if (!value.messages || !value.messages[0]) {
-      console.log("No se encontraron mensajes en el evento");
-      res.sendStatus(200);
+      console.log("No se encontraron mensajes en el evento:", value);
+      res.sendStatus(200); // Aceptar eventos que no sean mensajes
       return;
     }
 
@@ -98,14 +98,15 @@ export const verifyWebhook = async (
     const body = text.body;
     console.log("Mensaje de WhatsApp recibido:", body);
 
-    // Asegurar que el número tenga el formato correcto
     const userPhoneNumber = `+${from}`;
     console.log("Número de usuario formateado:", userPhoneNumber);
 
-    // Buscar el usuario por número de WhatsApp
-    let user = await User.findOne({ whatsappNumber: userPhoneNumber });
+    console.log("Conexión a MongoDB establecida, buscando usuario...");
+    const user = await User.findOne({ whatsappNumber: userPhoneNumber });
     if (!user) {
       console.log("Usuario no encontrado para el número de WhatsApp:", userPhoneNumber);
+      const allUsers = await User.find({}, { whatsappNumber: 1 });
+      console.log("Todos los usuarios en la colección test.users:", allUsers);
       await sendWhatsAppMessage(
         userPhoneNumber,
         "No estás registrado. Por favor, regístrate en FinanzApp para usar esta funcionalidad."
@@ -116,7 +117,6 @@ export const verifyWebhook = async (
     const userId = user._id;
     console.log("Usuario encontrado:", userId);
 
-    // Verificar el estado de la suscripción
     const isTrialActive = user.trialEndDate && user.trialEndDate > new Date();
     if (user.subscriptionStatus !== "active" && !isTrialActive) {
       console.log("Usuario sin suscripción activa:", userId);
@@ -128,7 +128,6 @@ export const verifyWebhook = async (
       return;
     }
 
-    // Verificar el límite de mensajes
     const messageLimit = 10;
     if (user.subscriptionStatus !== "active" && user.messageCount >= messageLimit) {
       console.log("Usuario ha alcanzado el límite de mensajes:", userId);
@@ -140,13 +139,10 @@ export const verifyWebhook = async (
       return;
     }
 
-    // Incrementar el contador de mensajes
     user.messageCount = (user.messageCount || 0) + 1;
     await user.save();
     console.log("Contador de mensajes actualizado:", user.messageCount);
 
-    // Procesar el mensaje
-    // 1. Recordatorios: "recordame <tarea> mañana a las <hora>:<minutos>"
     const reminderMatch = body.match(/recordame (.+) mañana a las (\d{1,2}):(\d{2})/i);
     if (reminderMatch) {
       const task = reminderMatch[1];
@@ -191,7 +187,6 @@ export const verifyWebhook = async (
       return;
     }
 
-    // 2. Gastos: "Gaste <monto> en <categoría>"
     const expenseMatch = body.match(/gaste (\d+) en (.+)/i);
     if (expenseMatch) {
       const amount = parseInt(expenseMatch[1], 10);
@@ -226,7 +221,6 @@ export const verifyWebhook = async (
       return;
     }
 
-    // Si el mensaje no coincide con ningún formato
     console.log("Formato del mensaje no válido:", body);
     await sendWhatsAppMessage(
       userPhoneNumber,

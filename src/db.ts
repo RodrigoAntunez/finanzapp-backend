@@ -21,7 +21,7 @@ export const connectDB = async () => {
     }
 
     await mongoose.connect(process.env.MONGODB_URI, {
-      dbName: "finanzapp", // Especifica la base de datos
+      dbName: "finanzapp",
       connectTimeoutMS: 60000,
       socketTimeoutMS: 60000,
       serverSelectionTimeoutMS: 60000,
