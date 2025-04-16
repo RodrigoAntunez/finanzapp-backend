@@ -26,6 +26,7 @@ const setupRoutes = async () => {
   try {
     // Conectar a MongoDB y esperar a que se complete
     await connectDB();
+    console.log("Conexión a MongoDB completada en app.ts"); // Añadir este log si no está
 
     // Rutas de prueba
     app.get("/api/auth/direct-test", (req, res) => {
