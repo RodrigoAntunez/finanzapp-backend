@@ -18,6 +18,7 @@ export const connectDB = async () => {
     });
 
     console.log("MongoDB conectado a la base de datos: finanzapp");
+    console.log("Estado de conexión:", mongoose.connection.readyState); // Agregado
   } catch (err: any) {
     console.error("Error al conectar a MongoDB:", err.message);
     process.exit(1);
