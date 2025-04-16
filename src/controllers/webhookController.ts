@@ -45,7 +45,8 @@ export const verifyWebhook = async (req: Request, res: Response, next: NextFunct
       return;
     }
 
-    // Validación más robusta de entry
+    // Validación más flexible de entry
+    console.log("Validando entrada:", JSON.stringify(entry, null, 2));
     if (!entry || entry.length === 0) {
       console.log("Entrada vacía o no definida:", entry);
       res.status(400).json({ message: "Entrada vacía o no válida" });
@@ -58,6 +59,7 @@ export const verifyWebhook = async (req: Request, res: Response, next: NextFunct
     }
 
     const firstEntry = entry[0];
+    console.log("Primera entrada:", JSON.stringify(firstEntry, null, 2));
     if (!firstEntry || !firstEntry.changes || firstEntry.changes.length === 0) {
       console.log("Cambios no válidos o vacíos en la primera entrada:", firstEntry);
       res.status(400).json({ message: "Cambios no válidos o vacíos" });
@@ -65,6 +67,7 @@ export const verifyWebhook = async (req: Request, res: Response, next: NextFunct
     }
 
     const change = firstEntry.changes[0];
+    console.log("Primer cambio:", JSON.stringify(change, null, 2));
     const { value } = change;
 
     console.log("Contenido de value:", JSON.stringify(value, null, 2));
