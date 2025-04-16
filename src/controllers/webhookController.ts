@@ -254,7 +254,7 @@ export const getWebhook = (req: Request, res: Response) => {
     console.log("Webhook verificado exitosamente");
     return res.status(200).send(challenge);
   } else {
-    console.log("Fallo en la verificación del webhook");
+    console.log("Fallo en la verificación del webhook.");
     return res.sendStatus(403);
   }
 };
