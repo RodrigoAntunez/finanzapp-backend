@@ -17,7 +17,7 @@ const sendWhatsAppMessage = async (to: string, message: string): Promise<void> =
       whatsappApiUrl,
       {
         messaging_product: "whatsapp",
-        to,
+        to, // Usar el 'to' recibido directamente
         type: "text",
         text: {
           body: message,
@@ -100,29 +100,32 @@ export const verifyWebhook = async (
     const message = value.messages[0];
     if (message.type !== "text") {
       console.log("Mensaje no es de tipo texto:", message.type);
-      await sendWhatsAppMessage(`+${message.from}`, "Solo se admiten mensajes de texto.");
-      res.status(400).json({ message: "Solo se admiten mensajes de texto" });
+      const userPhoneNumber = `+${message.from}`;
+      console.log("Enviando mensaje a:", userPhoneNumber);
+      await sendWhatsAppMessage(userPhoneNumber, "Solo se admiten mensajes de texto.");
+      res.status(200).json({ message: "Solo se admiten mensajes de texto" }); // Cambiar a 200
       return;
     }
 
     const { from, text } = message;
-    const body = text.body;
-    console.log("Mensaje de WhatsApp recibido:", body);
+    const body = text.body.toLowerCase(); // Convertir a minúsculas para consistencia
+    console.log("Mensaje de WhatsApp recibido (en minúsculas):", body);
 
     const userPhoneNumber = `+${from}`;
     console.log("Número de usuario formateado:", userPhoneNumber);
 
-    console.log("Conexión a MongoDB establecida, buscando usuario...");
+    console.log("Buscando usuario en MongoDB...");
     const user = await User.findOne({ whatsappNumber: userPhoneNumber });
     if (!user) {
       console.log("Usuario no encontrado para el número de WhatsApp:", userPhoneNumber);
       const allUsers = await User.find({}, { whatsappNumber: 1 });
       console.log("Todos los usuarios en la colección test.users:", allUsers);
+      console.log("Enviando mensaje a:", userPhoneNumber);
       await sendWhatsAppMessage(
         userPhoneNumber,
         "No estás registrado. Por favor, regístrate en FinanzApp para usar esta funcionalidad."
       );
-      res.status(404).json({ message: "Usuario no encontrado" });
+      res.status(200).json({ message: "Usuario no encontrado" }); // Cambiar a 200
       return;
     }
     const userId = user._id;
@@ -131,22 +134,24 @@ export const verifyWebhook = async (
     const isTrialActive = user.trialEndDate && user.trialEndDate > new Date();
     if (user.subscriptionStatus !== "active" && !isTrialActive) {
       console.log("Usuario sin suscripción activa:", userId);
+      console.log("Enviando mensaje a:", userPhoneNumber);
       await sendWhatsAppMessage(
         userPhoneNumber,
         "Tu suscripción o período de prueba ha expirado. Por favor, actualiza tu plan para continuar usando FinanzApp."
       );
-      res.status(403).json({ message: "Suscripción inactiva" });
+      res.status(200).json({ message: "Suscripción inactiva" }); // Cambiar a 200
       return;
     }
 
     const messageLimit = 10;
     if (user.subscriptionStatus !== "active" && user.messageCount >= messageLimit) {
       console.log("Usuario ha alcanzado el límite de mensajes:", userId);
+      console.log("Enviando mensaje a:", userPhoneNumber);
       await sendWhatsAppMessage(
         userPhoneNumber,
         `Has alcanzado el límite de ${messageLimit} mensajes. Por favor, actualiza tu plan para continuar usando FinanzApp.`
       );
-      res.status(403).json({ message: "Límite de mensajes alcanzado" });
+      res.status(200).json({ message: "Límite de mensajes alcanzado" }); // Cambiar a 200
       return;
     }
 
@@ -154,13 +159,21 @@ export const verifyWebhook = async (
     await user.save();
     console.log("Contador de mensajes actualizado:", user.messageCount);
 
-    const reminderMatch = body.match(/recordame (.+) mañana a las (\d{1,2}):(\d{2})/i);
+    const reminderMatch = body.match(/^recordame\s+(.+)\s+mañana\s+a\s+las\s+(\d{1,2}):(\d{2})$/i);
     if (reminderMatch) {
-      const task = reminderMatch[1];
+      const task = reminderMatch[1].trim();
       const hours = parseInt(reminderMatch[2], 10);
       const minutes = parseInt(reminderMatch[3], 10);
       console.log("Tarea extraída:", task);
       console.log("Hora extraída:", hours, ":", minutes);
+
+      if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59) {
+        console.log("Hora o minutos inválidos:", hours, minutes);
+        console.log("Enviando mensaje a:", userPhoneNumber);
+        await sendWhatsAppMessage(userPhoneNumber, "Hora o minutos inválidos. Usa un formato válido (0-23:00-59).");
+        res.status(200).json({ message: "Hora inválida" });
+        return;
+      }
 
       const tomorrow = new Date();
       tomorrow.setDate(tomorrow.getDate() + 1);
@@ -189,20 +202,28 @@ export const verifyWebhook = async (
       await user.save();
       console.log("Array de reminders del usuario actualizado:", user.reminders);
 
+      console.log("Enviando mensaje a:", userPhoneNumber);
       await sendWhatsAppMessage(
         userPhoneNumber,
         `Recordatorio creado: "${task}" para mañana a las ${hours}:${minutes.toString().padStart(2, "0")}.`
       );
-
       res.status(200).json({ message: "Recordatorio procesado exitosamente" });
       return;
     }
 
-    const expenseMatch = body.match(/gaste (\d+) en (.+)/i);
+    const expenseMatch = body.match(/^gaste\s+(\d+)\s+en\s+(.+)$/i);
     if (expenseMatch) {
       const amount = parseInt(expenseMatch[1], 10);
       const category = expenseMatch[2].trim();
       console.log("Gasto extraído - Monto:", amount, "Categoría:", category);
+
+      if (isNaN(amount) || amount <= 0) {
+        console.log("Monto inválido:", amount);
+        console.log("Enviando mensaje a:", userPhoneNumber);
+        await sendWhatsAppMessage(userPhoneNumber, "Monto inválido. Usa un número positivo.");
+        res.status(200).json({ message: "Monto inválido" });
+        return;
+      }
 
       const newExpense = new Expense({
         user: userId,
@@ -223,21 +244,22 @@ export const verifyWebhook = async (
       await user.save();
       console.log("Array de expenses del usuario actualizado:", user.expenses);
 
+      console.log("Enviando mensaje a:", userPhoneNumber);
       await sendWhatsAppMessage(
         userPhoneNumber,
         `Gasto registrado: $${amount} en ${category}.`
       );
-
       res.status(200).json({ message: "Gasto procesado exitosamente" });
       return;
     }
 
     console.log("Formato del mensaje no válido:", body);
+    console.log("Enviando mensaje a:", userPhoneNumber);
     await sendWhatsAppMessage(
       userPhoneNumber,
       "Formato del mensaje no válido. Usa:\n- 'recordame <tarea> mañana a las <hora>:<minutos>' (ejemplo: 'recordame comprar pan mañana a las 9:00')\n- 'gaste <monto> en <categoría>' (ejemplo: 'gaste 100 en panaderia')"
     );
-    res.status(400).json({ message: "Formato del mensaje no válido" });
+    res.status(200).json({ message: "Procesado, pero formato inválido" }); // Cambiar a 200
   } catch (error: any) {
     console.error("Error en verifyWebhook:", error.message);
     next(error);
