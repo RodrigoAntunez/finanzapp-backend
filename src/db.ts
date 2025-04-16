@@ -5,7 +5,6 @@ export const connectDB = async () => {
     if (!process.env.MONGODB_URI) {
       throw new Error("MONGODB_URI no está definida en las variables de entorno");
     }
-
     await mongoose.connect(process.env.MONGODB_URI, {
       dbName: "finanzapp",
       connectTimeoutMS: 60000,
@@ -16,11 +15,12 @@ export const connectDB = async () => {
       retryWrites: true,
       w: "majority",
     });
-
     console.log("MongoDB conectado a la base de datos: finanzapp");
-    console.log("Estado de conexión:", mongoose.connection.readyState); // Agregado
+    return mongoose;
   } catch (err: any) {
     console.error("Error al conectar a MongoDB:", err.message);
     process.exit(1);
   }
 };
+
+export default mongoose;
