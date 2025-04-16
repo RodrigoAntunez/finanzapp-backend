@@ -59,29 +59,40 @@ export const verifyWebhook = async (
       return;
     }
 
-    if (!entry || !entry[0]?.changes || !entry[0].changes[0]) {
-      console.log("Estructura de la solicitud no válida:", entry);
-      res.status(400).json({ message: "Estructura de la solicitud no válida" });
+    // Validar la estructura de entry
+    if (!entry || !Array.isArray(entry) || entry.length === 0) {
+      console.log("Entrada no válida o vacía:", entry);
+      res.status(400).json({ message: "Entrada no válida o vacía" });
       return;
     }
 
-    const changes = entry[0].changes[0];
-    const { value } = changes;
+    const firstEntry = entry[0];
+    if (!firstEntry.changes || !Array.isArray(firstEntry.changes) || firstEntry.changes.length === 0) {
+      console.log("Cambios no válidos o vacíos:", firstEntry.changes);
+      res.status(400).json({ message: "Cambios no válidos o vacíos" });
+      return;
+    }
+
+    const change = firstEntry.changes[0];
+    const { value } = change;
+
+    // Log detallado del contenido de value
+    console.log("Contenido de value:", JSON.stringify(value, null, 2));
 
     // Manejar eventos de estado (statuses)
-    if (value.statuses) {
+    if (value.statuses && Array.isArray(value.statuses) && value.statuses.length > 0) {
       const status = value.statuses[0];
       console.log("Evento de estado recibido:", JSON.stringify(status, null, 2));
       if (status.status === "failed") {
-        console.error("Fallo en el envío del mensaje:", status.errors);
+        console.error("Fallo en el envío del mensaje:", JSON.stringify(status.errors, null, 2));
       }
       res.sendStatus(200); // Aceptar el evento de estado
       return;
     }
 
     // Manejar mensajes entrantes (messages)
-    if (!value.messages || !value.messages[0]) {
-      console.log("No se encontraron mensajes en el evento:", value);
+    if (!value.messages || !Array.isArray(value.messages) || value.messages.length === 0) {
+      console.log("No se encontraron mensajes en el evento:", JSON.stringify(value, null, 2));
       res.sendStatus(200); // Aceptar eventos que no sean mensajes
       return;
     }
