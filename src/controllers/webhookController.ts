@@ -101,22 +101,30 @@ export const verifyWebhook = async (req: Request, res: Response, next: NextFunct
     const body = text.body.toLowerCase();
     console.log("Mensaje de WhatsApp recibido (en minúsculas):", body);
 
-    const userPhoneNumber = `${from}`;
-    console.log("Número de usuario formateado:", userPhoneNumber);
+    const userPhoneNumber = `+${from}`;
+console.log("Número de usuario formateado (original):", userPhoneNumber);
 
-    console.log("Buscando usuario en MongoDB...");
-    const user = await User.findOne({ whatsappNumber: userPhoneNumber });
-    if (!user) {
-      console.log("Usuario no encontrado para el número de WhatsApp:", userPhoneNumber);
-      const allUsers = await User.find({}, { whatsappNumber: 1 });
-      console.log("Todos los usuarios en la colección test.users:", allUsers);
-      console.log("Enviando mensaje a (no encontrado):", userPhoneNumber);
-      await sendWhatsAppMessage(userPhoneNumber, "No estás registrado. Por favor, regístrate en FinanzApp para usar esta funcionalidad.");
-      res.status(200).json({ message: "Usuario no encontrado" });
-      return;
-    }
-    const userId = user._id;
-    console.log("Usuario encontrado:", userId);
+const normalizedPhoneNumber = userPhoneNumber.replace(/^\+/, '');
+console.log("Número de usuario normalizado (sin +):", normalizedPhoneNumber);
+
+console.log("Buscando usuario en MongoDB...");
+const user = await User.findOne({
+  $or: [
+    { whatsappNumber: userPhoneNumber },
+    { whatsappNumber: normalizedPhoneNumber }
+  ]
+});
+if (!user) {
+  console.log("Usuario no encontrado para el número de WhatsApp:", userPhoneNumber);
+  const allUsers = await User.find({}, { whatsappNumber: 1 });
+  console.log(`Todos los usuarios en la colección ${User.collection.name}:`, allUsers);
+  console.log("Enviando mensaje a (no encontrado):", userPhoneNumber);
+  await sendWhatsAppMessage(userPhoneNumber, "No estás registrado. Por favor, regístrate en FinanzApp para usar esta funcionalidad.");
+  res.status(200).json({ message: "Usuario no encontrado" });
+  return;
+}
+const userId = user._id;
+console.log("Usuario encontrado:", userId);
 
     const isTrialActive = user.trialEndDate && user.trialEndDate > new Date();
     if (user.subscriptionStatus !== "active" && !isTrialActive) {

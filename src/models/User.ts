@@ -28,4 +28,4 @@ const userSchema = new Schema<IUser>({
   trialEndDate: { type: Date, required: false },
 });
 
-export const User = mongoose.model<IUser>("User", userSchema,'test.users');
+export const User = mongoose.model<IUser>("User", userSchema,'users');
