@@ -1,31 +1,28 @@
-// backend/src/models/Expense.ts
 import { Schema, model, Document, Types } from "mongoose";
 import { IUser } from "./User"; // Importa IUser
 
 export interface IExpense extends Document {
   _id: Types.ObjectId;
-  userId: Types.ObjectId;
-  user: Types.ObjectId | IUser; // Añadimos user (puede ser el mismo que userId, dependiendo de tu lógica)
+  user: Types.ObjectId | IUser; // Usamos solo 'user' en lugar de 'userId'
   amount: number;
   category: string;
-  description?: string; // Añadimos description
-  shared: boolean; // Añadimos shared
-  members?: Types.ObjectId[]; // Añadimos members (arreglo de ObjectId para los usuarios con los que se comparte el gasto)
-  division?: string; // Añadimos division (por ejemplo, "equal" o "custom")
-  reminderDate?: Date; // Añadimos reminderDate
+  description?: string;
+  shared: boolean;
+  members?: Types.ObjectId[];
+  division?: string;
+  reminderDate?: Date;
   date: Date;
 }
 
 const expenseSchema = new Schema<IExpense>({
-  userId: { type: Schema.Types.ObjectId, ref: "User", required: true },
-  user: { type: Schema.Types.ObjectId, ref: "User", required: true }, // Añadimos user
+  user: { type: Schema.Types.ObjectId, ref: "User", required: true }, // Eliminamos 'userId', usamos solo 'user'
   amount: { type: Number, required: true },
   category: { type: String, required: true },
-  description: { type: String, required: false }, // Añadimos description
-  shared: { type: Boolean, default: false }, // Añadimos shared
-  members: [{ type: Schema.Types.ObjectId, ref: "User" }], // Añadimos members
-  division: { type: String, required: false }, // Añadimos division
-  reminderDate: { type: Date, required: false }, // Añadimos reminderDate
+  description: { type: String, required: false },
+  shared: { type: Boolean, default: false },
+  members: [{ type: Schema.Types.ObjectId, ref: "User" }],
+  division: { type: String, required: false },
+  reminderDate: { type: Date, required: false },
   date: { type: Date, default: Date.now },
 });
 
