@@ -30,45 +30,44 @@ app.get("/", (req, res) => {
   res.status(200).json({ message: "Bienvenido a FinanzApp Backend" });
 });
 
-// Función asíncrona para configurar las rutas después de conectar
-const setupRoutes = async () => {
+// Rutas de prueba (para depuración)
+app.get("/api/auth/direct-test", (req, res) => {
+  res.status(200).json({ message: "Ruta de prueba directa en /api/auth/direct-test" });
+});
+
+// Montar rutas directamente (sin esperar a setupRoutes)
+console.log("Montando rutas...");
+app.use("/api/auth", authRoutes);
+console.log("Rutas de autenticación montadas en /api/auth");
+app.use("/api/expenses", expenseRoutes);
+console.log("Rutas de gastos montadas en /api/expenses");
+app.use("/api/reminders", reminderRoutes);
+console.log("Rutas de recordatorios montadas en /api/reminders");
+app.use("/api/shopping-lists", shoppingRoutes);
+console.log("Rutas de listas de compras montadas en /api/shopping-lists");
+app.use("/api/subscriptions", subscriptionRoutes);
+console.log("Rutas de suscripciones montadas en /api/subscriptions");
+app.use("/api/users", userRoutes);
+console.log("Rutas de usuarios montadas en /api/users");
+app.use("/api/validate-token", validateTokenRoutes);
+console.log("Rutas de validate-token montadas en /api/validate-token");
+app.use("/api/webhook", webhookRoutes);
+console.log("Rutas de webhook montadas en /api/webhook");
+
+// Conectar a MongoDB de manera asíncrona (sin bloquear las rutas)
+const initializeDB = async () => {
   try {
-    // Conectar a MongoDB y esperar a que se complete
     console.log("Intentando conectar a MongoDB...");
     await connectDB();
-    console.log("Conexión a MongoDB completada en app.ts con éxito");
-
-    // Rutas de prueba
-    app.get("/api/auth/direct-test", (req, res) => {
-      res.status(200).json({ message: "Ruta de prueba directa en /api/auth/direct-test" });
-    });
-
-    // Montar rutas
-    app.use("/api/auth", authRoutes);
-    console.log("Rutas de autenticación montadas en /api/auth");
-    app.use("/api/expenses", expenseRoutes);
-    console.log("Rutas de gastos montadas en /api/expenses");
-    app.use("/api/reminders", reminderRoutes);
-    console.log("Rutas de recordatorios montadas en /api/reminders");
-    app.use("/api/shopping-lists", shoppingRoutes);
-    console.log("Rutas de listas de compras montadas en /api/shopping-lists");
-    app.use("/api/subscriptions", subscriptionRoutes);
-    console.log("Rutas de suscripciones montadas en /api/subscriptions");
-    app.use("/api/users", userRoutes);
-    console.log("Rutas de usuarios montadas en /api/users");
-    app.use("/api/validate-token", validateTokenRoutes);
-    console.log("Rutas de validate-token montadas en /api/validate-token");
-    app.use("/api/webhook", webhookRoutes);
-    console.log("Rutas de webhook montadas en /api/webhook");
+    console.log("Conexión a MongoDB completada con éxito");
   } catch (err) {
-    console.error("Error al configurar las rutas:", err);
-    // No salimos del proceso, permitimos que el servidor siga corriendo
-    // y manejamos el error en las rutas
+    console.error("Error al conectar a MongoDB:", err);
+    // No detenemos el servidor, pero las rutas que dependan de MongoDB fallarán
   }
 };
 
-// Iniciar la configuración de rutas
-setupRoutes();
+// Iniciar la conexión a MongoDB
+initializeDB();
 
 // Middleware de manejo de errores global
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
