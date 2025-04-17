@@ -101,7 +101,7 @@ export const verifyWebhook = async (req: Request, res: Response, next: NextFunct
     const body = text.body.toLowerCase();
     console.log("Mensaje de WhatsApp recibido (en minúsculas):", body);
 
-    const userPhoneNumber = `+${from}`;
+    const userPhoneNumber = `${from}`;
     console.log("Número de usuario formateado:", userPhoneNumber);
 
     console.log("Buscando usuario en MongoDB...");
