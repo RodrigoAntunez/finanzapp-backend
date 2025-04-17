@@ -19,15 +19,18 @@ const app = express();
 // Middleware global
 app.use(cors({ 
   origin: process.env.FRONTEND_URL || "https://finanzapp-frontend.vercel.app",
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"], // Incluye OPTIONS
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   credentials: true,
-  allowedHeaders: ["Content-Type", "Authorization"], // Permite encabezados necesarios
+  allowedHeaders: ["Content-Type", "Authorization"],
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Manejar solicitudes OPTIONS manualmente (para mayor control)
-app.options("*", cors()); // Responde a todas las solicitudes OPTIONS
+// Manejar solicitudes OPTIONS explícitamente
+app.options("*", (req: express.Request, res: express.Response) => {
+  console.log(`Solicitud OPTIONS recibida para: ${req.originalUrl}`);
+  res.status(200).end();
+});
 
 // Ruta de prueba en la raíz
 app.get("/", (req, res) => {
