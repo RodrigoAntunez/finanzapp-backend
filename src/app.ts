@@ -19,23 +19,29 @@ const app = express();
 // Middleware global
 app.use(cors({ 
   origin: process.env.FRONTEND_URL || "https://finanzapp-frontend.vercel.app",
-  methods: ["GET", "POST", "PUT", "DELETE"],
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"], // Incluye OPTIONS
   credentials: true,
+  allowedHeaders: ["Content-Type", "Authorization"], // Permite encabezados necesarios
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Manejar solicitudes OPTIONS manualmente (para mayor control)
+app.options("*", cors()); // Responde a todas las solicitudes OPTIONS
+
 // Ruta de prueba en la raíz
 app.get("/", (req, res) => {
+  console.log("Solicitud recibida en /");
   res.status(200).json({ message: "Bienvenido a FinanzApp Backend" });
 });
 
 // Rutas de prueba (para depuración)
 app.get("/api/auth/direct-test", (req, res) => {
+  console.log("Solicitud recibida en /api/auth/direct-test");
   res.status(200).json({ message: "Ruta de prueba directa en /api/auth/direct-test" });
 });
 
-// Montar rutas directamente (sin esperar a setupRoutes)
+// Montar rutas directamente
 console.log("Montando rutas...");
 app.use("/api/auth", authRoutes);
 console.log("Rutas de autenticación montadas en /api/auth");
@@ -54,7 +60,7 @@ console.log("Rutas de validate-token montadas en /api/validate-token");
 app.use("/api/webhook", webhookRoutes);
 console.log("Rutas de webhook montadas en /api/webhook");
 
-// Conectar a MongoDB de manera asíncrona (sin bloquear las rutas)
+// Conectar a MongoDB de manera asíncrona
 const initializeDB = async () => {
   try {
     console.log("Intentando conectar a MongoDB...");
@@ -62,7 +68,6 @@ const initializeDB = async () => {
     console.log("Conexión a MongoDB completada con éxito");
   } catch (err) {
     console.error("Error al conectar a MongoDB:", err);
-    // No detenemos el servidor, pero las rutas que dependan de MongoDB fallarán
   }
 };
 
@@ -78,9 +83,10 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
   });
 });
 
-// Manejo de rutas no encontradas
+// Manejo de rutas no encontradas y errores 405
 app.use((req: express.Request, res: express.Response) => {
-  res.status(404).json({ message: `Ruta no encontrada: ${req.originalUrl}` });
+  console.log(`Ruta no encontrada o método no permitido: ${req.method} ${req.originalUrl}`);
+  res.status(405).json({ message: `Método ${req.method} no permitido para la ruta ${req.originalUrl}` });
 });
 
 export default app;
