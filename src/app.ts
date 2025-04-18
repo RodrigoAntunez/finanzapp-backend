@@ -16,31 +16,32 @@ console.log("VERIFY_TOKEN cargado:", process.env.VERIFY_TOKEN);
 
 const app = express();
 
-// Middleware global
+// Middleware global para CORS
 app.use(cors({ 
   origin: process.env.FRONTEND_URL || "https://finanzapp-frontend.vercel.app",
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   credentials: true,
-  allowedHeaders: ["Content-Type", "Authorization"],
+  allowedHeaders: ["Content-Type", "Authorization", "Accept", "Origin"],
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Manejar solicitudes OPTIONS explícitamente
+// Manejar solicitudes OPTIONS explícitamente con logs detallados
 app.options("*", (req: express.Request, res: express.Response) => {
   console.log(`Solicitud OPTIONS recibida para: ${req.originalUrl}`);
+  console.log(`Encabezados de la solicitud OPTIONS: ${JSON.stringify(req.headers)}`);
   res.status(200).end();
 });
 
 // Ruta de prueba en la raíz
 app.get("/", (req, res) => {
-  console.log("Solicitud recibida en /");
+  console.log(`Solicitud GET recibida en /`);
   res.status(200).json({ message: "Bienvenido a FinanzApp Backend" });
 });
 
 // Rutas de prueba (para depuración)
 app.get("/api/auth/direct-test", (req, res) => {
-  console.log("Solicitud recibida en /api/auth/direct-test");
+  console.log(`Solicitud GET recibida en /api/auth/direct-test`);
   res.status(200).json({ message: "Ruta de prueba directa en /api/auth/direct-test" });
 });
 
@@ -79,7 +80,7 @@ initializeDB();
 
 // Middleware de manejo de errores global
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
-  console.error("Error no manejado:", err.message);
+  console.error(`Error no manejado en ${req.method} ${req.originalUrl}:`, err.message);
   res.status(err.status || 500).json({
     message: err.message || "Error interno del servidor",
     error: process.env.NODE_ENV === "development" ? err.stack : undefined,
@@ -89,7 +90,10 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
 // Manejo de rutas no encontradas y errores 405
 app.use((req: express.Request, res: express.Response) => {
   console.log(`Ruta no encontrada o método no permitido: ${req.method} ${req.originalUrl}`);
-  res.status(405).json({ message: `Método ${req.method} no permitido para la ruta ${req.originalUrl}` });
+  res.status(405).json({ 
+    message: `Método ${req.method} no permitido para la ruta ${req.originalUrl}`,
+    allowedMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+  });
 });
 
 export default app;

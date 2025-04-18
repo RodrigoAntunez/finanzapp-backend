@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import { Reminder } from "../models/Reminder";
 import { Expense } from "../models/Expense";
 import { User } from "../models/User";
+import { ShoppingItem } from "../models/ShoppingItem";
 import mongoose, { Schema } from "mongoose";
 import axios from "axios";
 
@@ -115,13 +116,13 @@ export const verifyWebhook = async (req: Request, res: Response, next: NextFunct
     }
 
     const { from, text } = message;
-    const body = text.body.toLowerCase();
-    console.log("Mensaje de WhatsApp recibido (en minúsculas):", body);
+    const body = text.trim(); // Preservar mayúsculas para el nombre
+    console.log("Mensaje de WhatsApp recibido:", body);
 
     const userPhoneNumber = `+${from}`;
     console.log("Número de usuario formateado (original):", userPhoneNumber);
 
-    const normalizedPhoneNumber = userPhoneNumber.replace(/^\+/, '');
+    const normalizedPhoneNumber = userPhoneNumber.replace(/^\+/, "");
     console.log("Número de usuario normalizado (sin +):", normalizedPhoneNumber);
 
     console.log("Buscando usuario en MongoDB...");
@@ -137,22 +138,42 @@ export const verifyWebhook = async (req: Request, res: Response, next: NextFunct
       console.log(`Todos los usuarios en la colección ${User.collection.name}:`, allUsers);
       console.log("Enviando mensaje a (no encontrado):", userPhoneNumber);
       await sendWhatsAppMessage(userPhoneNumber, "No estás registrado. Por favor, regístrate en FinanzApp para usar esta funcionalidad.");
-      res.status(200).json({ message: "Usuario no encontrado" });
-
-      // Registrar el mensaje como procesado incluso si el usuario no se encuentra
       await new ProcessedMessage({ messageId }).save();
+      res.status(200).json({ message: "Usuario no encontrado" });
       return;
     }
     const userId = user._id;
     console.log("Usuario encontrado:", userId);
 
+    // Capturar el nombre si no está registrado
+    if (!user.name) {
+      user.name = body;
+      await user.save();
+      console.log(`Nombre actualizado para el usuario ${userPhoneNumber}: ${body}`);
+
+      // Enviar mensaje de bienvenida personalizado
+      const dashboardLink = `https://finanzapp-frontend.vercel.app/dashboard/${generateToken(userId.toString())}`;
+      const welcomeMessage = `¡Hola, ${body}! Bienvenido/a a FinanzApp. Aquí te explico cómo empezar:\n\n` +
+        `1. **Registrar Gastos**: Envía "gaste <monto> en <categoría>" (ejemplo: "gaste 100 en panaderia").\n` +
+        `2. **Crear Recordatorios**: Envía "recordame <tarea> mañana a las <hora>:<minutos>" (ejemplo: "recordame comprar pan mañana a las 9:00").\n` +
+        `3. **Armar Listas**: Envía "crear lista <nombre>" para empezar una lista de compras (ejemplo: "crear lista supermercado").\n\n` +
+        `Accede a tu panel aquí: ${dashboardLink}\n\n` +
+        `¿Qué quieres hacer ahora?`;
+
+      console.log("Enviando mensaje de bienvenida a:", userPhoneNumber);
+      await sendWhatsAppMessage(userPhoneNumber, welcomeMessage);
+      await new ProcessedMessage({ messageId }).save();
+      res.status(200).json({ message: "Nombre registrado y bienvenida enviada" });
+      return;
+    }
+
+    // Verificar suscripción
     const isTrialActive = user.trialEndDate && user.trialEndDate > new Date();
     if (user.subscriptionStatus !== "active" && !isTrialActive) {
       console.log("Usuario sin suscripción activa:", userId);
       console.log("Enviando mensaje a (suscripción):", userPhoneNumber);
       await sendWhatsAppMessage(userPhoneNumber, "Tu suscripción o período de prueba ha expirado. Por favor, actualiza tu plan para continuar usando FinanzApp.");
       res.status(200).json({ message: "Suscripción inactiva" });
-
       await new ProcessedMessage({ messageId }).save();
       return;
     }
@@ -163,7 +184,6 @@ export const verifyWebhook = async (req: Request, res: Response, next: NextFunct
       console.log("Enviando mensaje a (límite):", userPhoneNumber);
       await sendWhatsAppMessage(userPhoneNumber, `Has alcanzado el límite de ${messageLimit} mensajes. Por favor, actualiza tu plan para continuar usando FinanzApp.`);
       res.status(200).json({ message: "Límite de mensajes alcanzado" });
-
       await new ProcessedMessage({ messageId }).save();
       return;
     }
@@ -172,7 +192,8 @@ export const verifyWebhook = async (req: Request, res: Response, next: NextFunct
     await user.save();
     console.log("Contador de mensajes actualizado:", user.messageCount);
 
-    const reminderMatch = body.match(/^recordame\s+(.+)\s+mañana\s+a\s+las\s+(\d{1,2}):(\d{2})$/i);
+    // Procesar comando para recordatorios
+    const reminderMatch = body.toLowerCase().match(/^recordame\s+(.+)\s+mañana\s+a\s+las\s+(\d{1,2}):(\d{2})$/i);
     if (reminderMatch) {
       const task = reminderMatch[1].trim();
       const hours = parseInt(reminderMatch[2], 10);
@@ -185,7 +206,6 @@ export const verifyWebhook = async (req: Request, res: Response, next: NextFunct
         console.log("Enviando mensaje a (hora inválida):", userPhoneNumber);
         await sendWhatsAppMessage(userPhoneNumber, "Hora o minutos inválidos. Usa un formato válido (0-23:00-59).");
         res.status(200).json({ message: "Hora inválida" });
-
         await new ProcessedMessage({ messageId }).save();
         return;
       }
@@ -211,20 +231,19 @@ export const verifyWebhook = async (req: Request, res: Response, next: NextFunct
         console.log("Enviando mensaje a (recordatorio):", userPhoneNumber);
         await sendWhatsAppMessage(userPhoneNumber, `Recordatorio creado: "${task}" para mañana a las ${hours}:${minutes.toString().padStart(2, "0")}.`);
         res.status(200).json({ message: "Recordatorio procesado exitosamente" });
-
         await new ProcessedMessage({ messageId }).save();
       } catch (error: any) {
         console.error("Error al guardar el recordatorio:", error.message);
         await sendWhatsAppMessage(userPhoneNumber, "Hubo un error al crear el recordatorio. Por favor, intenta de nuevo.");
         res.status(500).json({ message: "Error al procesar el recordatorio", error: error.message });
-
         await new ProcessedMessage({ messageId }).save();
         return;
       }
       return;
     }
 
-    const expenseMatch = body.match(/^gaste\s+(\d+)\s+en\s+(.+)$/i);
+    // Procesar comando para gastos
+    const expenseMatch = body.toLowerCase().match(/^gaste\s+(\d+)\s+en\s+(.+)$/i);
     if (expenseMatch) {
       const amount = parseInt(expenseMatch[1], 10);
       const category = expenseMatch[2].trim();
@@ -235,7 +254,6 @@ export const verifyWebhook = async (req: Request, res: Response, next: NextFunct
         console.log("Enviando mensaje a (monto inválido):", userPhoneNumber);
         await sendWhatsAppMessage(userPhoneNumber, "Monto inválido. Usa un número positivo.");
         res.status(200).json({ message: "Monto inválido" });
-
         await new ProcessedMessage({ messageId }).save();
         return;
       }
@@ -254,27 +272,62 @@ export const verifyWebhook = async (req: Request, res: Response, next: NextFunct
         console.log("Enviando mensaje a (gasto):", userPhoneNumber);
         await sendWhatsAppMessage(userPhoneNumber, `Gasto registrado: $${amount} en ${category}.`);
         res.status(200).json({ message: "Gasto procesado exitosamente" });
-
         await new ProcessedMessage({ messageId }).save();
       } catch (error: any) {
         console.error("Error al guardar el gasto:", error.message);
         await sendWhatsAppMessage(userPhoneNumber, "Hubo un error al registrar el gasto. Por favor, intenta de nuevo.");
         res.status(500).json({ message: "Error al procesar el gasto", error: error.message });
-
         await new ProcessedMessage({ messageId }).save();
-        return;
       }
       return;
     }
 
+    // Procesar comando para crear listas de compras
+    const listMatch = body.toLowerCase().match(/^crear lista\s+(.+)$/i);
+    if (listMatch) {
+      const listName = listMatch[1].trim();
+      console.log("Nombre de la lista extraído:", listName);
+
+      try {
+        const shoppingList = new ShoppingItem({
+          userId,
+          user: userId,
+          items: [], // Lista vacía al crearse
+        });
+        console.log("Guardando lista de compras:", JSON.stringify(shoppingList, null, 2));
+        const savedList = await shoppingList.save();
+        console.log("Lista guardada exitosamente:", savedList);
+
+        user.shoppingLists = user.shoppingLists || [];
+        user.shoppingLists.push(savedList._id);
+        await user.save();
+        console.log("Array de shoppingLists del usuario actualizado:", user.shoppingLists);
+
+        console.log("Enviando mensaje a (lista):", userPhoneNumber);
+        await sendWhatsAppMessage(userPhoneNumber, `Lista de compras "${listName}" creada. Envía "agregar <elemento> a ${listName}" para añadir elementos.`);
+        res.status(200).json({ message: "Lista creada exitosamente" });
+        await new ProcessedMessage({ messageId }).save();
+      } catch (error: any) {
+        console.error("Error al crear la lista:", error.message);
+        await sendWhatsAppMessage(userPhoneNumber, "Hubo un error al crear la lista. Por favor, intenta de nuevo.");
+        res.status(500).json({ message: "Error al procesar la lista", error: error.message });
+        await new ProcessedMessage({ messageId }).save();
+      }
+      return;
+    }
+
+    // Mensaje no válido
     console.log("Formato del mensaje no válido:", body);
     console.log("Enviando mensaje a (formato inválido):", userPhoneNumber);
     await sendWhatsAppMessage(
       userPhoneNumber,
-      "Formato del mensaje no válido. Usa:\n- 'recordame <tarea> mañana a las <hora>:<minutos>' (ejemplo: 'recordame comprar pan mañana a las 9:00')\n- 'gaste <monto> en <categoría>' (ejemplo: 'gaste 100 en panaderia')"
+      `Hola, ${user.name}. No entendí tu mensaje. Usa:\n` +
+      `- "gaste <monto> en <categoría>" (ejemplo: "gaste 100 en panaderia")\n` +
+      `- "recordame <tarea> mañana a las <hora>:<minutos>" (ejemplo: "recordame comprar pan mañana a las 9:00")\n` +
+      `- "crear lista <nombre>" (ejemplo: "crear lista supermercado")\n` +
+      `¿Qué quieres hacer ahora?`
     );
     res.status(200).json({ message: "Procesado, pero formato inválido" });
-
     await new ProcessedMessage({ messageId }).save();
   } catch (error: any) {
     console.error("Error en verifyWebhook:", error.message);
@@ -296,4 +349,10 @@ export const getWebhook = (req: Request, res: Response) => {
     console.log("Fallo en la verificación del webhook.");
     return res.sendStatus(403);
   }
+};
+
+// Función para generar token
+const generateToken = (userId: string) => {
+  const jwt = require("jsonwebtoken");
+  return jwt.sign({ id: userId }, process.env.JWT_SECRET, { expiresIn: "30d" });
 };

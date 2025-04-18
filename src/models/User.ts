@@ -1,10 +1,9 @@
-// backend/src/models/User.ts
-import mongoose,{ Schema, model, Document, Types } from "mongoose";
+import mongoose, { Schema, model, Document, Types } from "mongoose";
 
 export interface IUser extends Document {
   _id: Types.ObjectId;
   whatsappNumber: string;
-  name?: string; // Añadimos name como opcional
+  name: string; // Corregido de { type: String } a string
   messageCount: number;
   expenses: Types.ObjectId[];
   shoppingLists: Types.ObjectId[];
@@ -17,7 +16,7 @@ export interface IUser extends Document {
 
 const userSchema = new Schema<IUser>({
   whatsappNumber: { type: String, required: true, unique: true },
-  name: { type: String, required: false }, // Añadimos name
+  name: { type: String, required: false }, // Esquema correcto
   messageCount: { type: Number, default: 0 },
   expenses: [{ type: Schema.Types.ObjectId, ref: "Expense" }],
   shoppingLists: [{ type: Schema.Types.ObjectId, ref: "ShoppingItem" }],
@@ -28,4 +27,4 @@ const userSchema = new Schema<IUser>({
   trialEndDate: { type: Date, required: false },
 });
 
-export const User = mongoose.model<IUser>("User", userSchema,'users');
+export const User = mongoose.model<IUser>("User", userSchema, "users");
