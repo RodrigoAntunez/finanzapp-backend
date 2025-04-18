@@ -116,8 +116,16 @@ export const verifyWebhook = async (req: Request, res: Response, next: NextFunct
     }
 
     const { from, text } = message;
-    const body = text.trim(); // Preservar mayúsculas para el nombre
-    console.log("Mensaje de WhatsApp recibido:", body);
+    // Corregir: Usar text.body en lugar de text directamente
+    let body = text.body.trim();
+    console.log("Mensaje de WhatsApp recibido (crudo):", body);
+
+    // Extraer el nombre si el mensaje contiene el texto inicial
+    const initialMessage = "¡Hola! Gracias por registrarte en FinanzApp. Para empezar, por favor dime tu nombre.";
+    if (body.startsWith(initialMessage)) {
+      body = body.slice(initialMessage.length).trim();
+      console.log("Nombre extraído después de eliminar el texto inicial:", body);
+    }
 
     const userPhoneNumber = `+${from}`;
     console.log("Número de usuario formateado (original):", userPhoneNumber);
@@ -147,6 +155,15 @@ export const verifyWebhook = async (req: Request, res: Response, next: NextFunct
 
     // Capturar el nombre si no está registrado
     if (!user.name) {
+      // Validar que el nombre no esté vacío
+      if (!body) {
+        console.log("Nombre vacío recibido:", body);
+        await sendWhatsAppMessage(userPhoneNumber, "Por favor, dime tu nombre.");
+        await new ProcessedMessage({ messageId }).save();
+        res.status(200).json({ message: "Nombre vacío" });
+        return;
+      }
+
       user.name = body;
       await user.save();
       console.log(`Nombre actualizado para el usuario ${userPhoneNumber}: ${body}`);
